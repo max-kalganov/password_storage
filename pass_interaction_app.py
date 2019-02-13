@@ -25,13 +25,13 @@ class PassStorage:
         self.aes = AES()
         self.aes.key = self.get_key()
         self.commands = {
-            "q": ("quit", self.quit),
+            "so": ("show one record by service", self.show_one),
             "ls": ("list all services", self.list_all),
             "a": ("add a record", self.add),
             "d": ("delete a record", self.delete),
             "ed": ("edit a record", self.edit),
             "h": ("show help", self.help),
-            "gp": ("get pass by service", self.show_one),
+            "q": ("quit", self.quit),
             "gk": ("gen key (will be in 'key.txt')", self.gen_aes_key)
         }
         self.all_passwords = self.decrypt_all()
