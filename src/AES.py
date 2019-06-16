@@ -2,6 +2,8 @@ import numpy as np
 
 
 class AES:
+    __slots__ = ["nb", "nr", "nk", "key", "open_bytes", "cipher_bytes", "hex_symbols_to_int", "sbox", "inv_sbox", "rcon"]
+
     def __init__(self):
         self.nb = 4  # number of coloumn of State (for AES = 4)
         self.nr = 10  # number of rounds ib ciper cycle (if nb = 4 nr = 10)

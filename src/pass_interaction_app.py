@@ -1,8 +1,12 @@
 import json
+import os
 import random
 import string
 
-from AES import AES
+from src.AES import AES
+from src.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_ONE_RECORD_OPTION, LIST_ALL_SERVICES, ADD_RECORD, DEL_RECORD,\
+    EDIT_RECORD, SHOW_HELP, QUIT, GEN_KEY, PATH_TO_PASSWORDS, CUR_HASH_KEY, USERNAME_KEY, PASSWORD_KEY, STOP_EDITING, \
+    PATH_TO_KEY
 
 
 class PassStorage:
@@ -16,7 +20,11 @@ class PassStorage:
         self.running_commands = None
 
     def init_after_install(self):
-        key_path = input("input path to file with key >> ")
+        try:
+            key_path = os.environ[PASS_STORAGE_ENV_KEY_PATH]
+        except Exception:
+            key_path = input("input path to file with key >> ")
+
         if self.check_key_path(key_path):
             self.key_path = key_path
         else:
@@ -25,20 +33,20 @@ class PassStorage:
         self.aes = AES()
         self.aes.key = self.get_key()
         self.commands = {
-            "so": ("show one record by service", self.show_one),
-            "ls": ("list all services", self.list_all),
-            "a": ("add a record", self.add),
-            "d": ("delete a record", self.delete),
-            "ed": ("edit a record", self.edit),
-            "h": ("show help", self.help),
-            "q": ("quit", self.quit),
-            "gk": ("gen key (will be in 'key.txt')", self.gen_aes_key)
+            SHOW_ONE_RECORD_OPTION: ("show one record by service", self.show_one),
+            LIST_ALL_SERVICES: ("list all services", self.list_all),
+            ADD_RECORD: ("add a record", self.add),
+            DEL_RECORD: ("delete a record", self.delete),
+            EDIT_RECORD: ("edit a record", self.edit),
+            SHOW_HELP: ("show help", self.help),
+            QUIT: ("quit", self.quit),
+            GEN_KEY: (f"gen key (will be in '{PATH_TO_KEY}')", self.gen_aes_key)
         }
         self.all_passwords = self.decrypt_all()
         self.running_commands = True
 
     def decrypt_all(self):
-        with open("passwords.txt", "r") as file:
+        with open(PATH_TO_PASSWORDS, "r") as file:
             encrypted_passwords = file.read()
         if encrypted_passwords == "":
             print("file with passwords is empty")
@@ -49,7 +57,10 @@ class PassStorage:
         self.aes.cipher_bytes = encrypted_codes[:]
         open_codes = self.aes.decrypt()
         open_pass = self.__get_text_from_list_of_nums(open_codes)
-        return json.loads(open_pass)
+        dict_open_passwords = json.loads(open_pass)
+        hash_value = dict_open_passwords[CUR_HASH_KEY]
+
+        return
 
     @staticmethod
     def get_list_of_nums(nums_in_row):
@@ -61,7 +72,7 @@ class PassStorage:
     def show_one(self):
         service = self.input_service()
         for num, acc in enumerate(self.all_passwords[service]):
-            print(f"{num}--username = {acc['username']}   |   password={acc['password']}")
+            print(f"{num}--username = {acc[USERNAME_KEY]}   |   password={acc[PASSWORD_KEY]}")
         show_full = input("input num of acc to show full info(or 'e' to exit) \n>> ")
         if show_full != 'e':
             show_full, good_res = self.input_num_of_acc(show_full, service)
@@ -88,8 +99,8 @@ class PassStorage:
         username = input("input username >> ")
         password = input("input password >> ")
         new_account = {
-            "username": username,
-            "password": password
+            USERNAME_KEY: username,
+            PASSWORD_KEY: password
         }
         add_field = input("add a field[y/n] >> ")
         while add_field == "y":
@@ -149,12 +160,12 @@ class PassStorage:
     def edit(self):
         service = self.input_service()
         self.print_all_accounts(service)
-        num_to_edit = input("input the number of account to edit ['s' to stop] \n>> ")
-        while num_to_edit != "s":
+        num_to_edit = input(f"input the number of account to edit ['{STOP_EDITING}' to stop] \n>> ")
+        while num_to_edit != STOP_EDITING:
             num_to_edit, good_res = self.input_num_of_acc(num_to_edit, service)
             if good_res:
                 self.edit_acc(service, num_to_edit)
-            num_to_edit = input("input the number of account to edit ['s' to stop] \n>> ")
+            num_to_edit = input(f"input the number of account to edit ['{STOP_EDITING}' to stop] \n>> ")
         print("finish editing")
 
     def edit_acc(self, service, num_of_acc):
@@ -162,8 +173,8 @@ class PassStorage:
             print(key)
 
         while True:
-            field = input("input field to edit ['s' to stop] \n>> ")
-            if field == 's':
+            field = input(f"input field to edit ['{STOP_EDITING}' to stop] \n>> ")
+            if field == STOP_EDITING:
                 break
             if field not in self.all_passwords[service][num_of_acc].keys():
                 print("There is no such field")
@@ -179,7 +190,7 @@ class PassStorage:
 
         encr_text = self.get_encr_text(encr_passwords)
 
-        with open("passwords.txt", "w") as file:
+        with open(PATH_TO_PASSWORDS, "w") as file:
             file.write(encr_text)
 
     def get_encr_text(self, encr_pass):
@@ -230,9 +241,9 @@ class PassStorage:
         symb_codes = ["0" * (3 - len(code)) + code for code in symb_codes]
         symb_codes = ''.join(symb_codes)
 
-        with open('key.txt', 'w') as file:
+        with open(PATH_TO_KEY, 'w') as file:
             file.write(symb_codes)
-        print("key is written into 'key.txt'")
+        print(f"key is written into '{PATH_TO_KEY}'")
 
     def run(self):
         self.init_after_install()
@@ -247,19 +258,10 @@ class PassStorage:
 
     def install(self):
         self.gen_aes_key()
-        file = open("passwords.txt", "w")
+        file = open(PATH_TO_PASSWORDS, "w")
         file.close()
 
 
 if __name__ == "__main__":
-    # aes = AES()
-    # with open("key.txt", 'r') as file:
-    #     aes.key = file.read()
-    # open_txt = "some text"
-    # aes.prepare_text(open_txt)
-    # enc_txt = aes.encrypt()
-    # text_after = ''.join([chr(num) for num in enc_txt if num != 0])
-
-
     p = PassStorage()
     p.run()
