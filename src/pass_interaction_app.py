@@ -42,6 +42,7 @@ class PassStorage:
             QUIT: ("quit", self.quit),
             GEN_KEY: (f"gen key (will be in '{PATH_TO_KEY}')", self.gen_aes_key)
         }
+        # TODO: check this shit below
         self.all_passwords = self.decrypt_all()
         self.running_commands = True
 
@@ -57,7 +58,11 @@ class PassStorage:
         self.aes.cipher_bytes = encrypted_codes[:]
         open_codes = self.aes.decrypt()
         open_pass = self.__get_text_from_list_of_nums(open_codes)
-        dict_open_passwords = json.loads(open_pass)
+        try:
+            dict_open_passwords = json.loads(open_pass)
+        except json.decoder.JSONDecodeError as e:
+            print(f"error happened while opening passwords file")
+            raise e
         hash_value = dict_open_passwords[CUR_HASH_KEY]
 
         return
