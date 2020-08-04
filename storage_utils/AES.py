@@ -350,18 +350,3 @@ class AES:
     def mul_by_0e(num):
         # return mul_by_0d(num)^num
         return AES.mul_by_02(AES.mul_by_02(AES.mul_by_02(num))) ^ AES.mul_by_02(AES.mul_by_02(num)) ^ AES.mul_by_02(num)
-
-# from Server import gen_aes_key
-#
-# if __name__ == "__main__":
-#     aes = AES()
-#     text_before = "hello my dear friend i'm glad to see you"
-#     aes.key = gen_aes_key()
-#     aes.prepare_text(text_before)
-#     cipher_text = aes.encrypt()
-#     print(f"cipher text = {cipher_text}")
-#
-#     open_text = aes.decrypt()
-#     text_after = ''.join([chr(num) for num in open_text if num != 0])
-#     print(f"open text = {text_after}")
-
