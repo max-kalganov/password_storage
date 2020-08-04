@@ -33,5 +33,5 @@ GEN_KEY = "gk"
 # PATHS
 ##############################################
 
-PATH_TO_PASSWORDS = "../passwords.txt"
-PATH_TO_KEY = "../key.txt"
+PATH_TO_PASSWORDS = "data/passwords.txt"
+PATH_TO_KEY = "data/key.txt"
