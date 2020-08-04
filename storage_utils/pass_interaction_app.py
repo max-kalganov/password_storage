@@ -2,6 +2,7 @@ import json
 import os
 import random
 import string
+from typing import Optional, Dict, Tuple, Callable
 
 from storage_utils.AES import AES
 from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_ONE_RECORD_OPTION, LIST_ALL_SERVICES, ADD_RECORD,\
@@ -10,26 +11,53 @@ from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_ONE_RECORD_OPTION, 
 
 
 class PassStorage:
-    __slots__ = ["key_path", "all_passwords", "aes", "commands", "running_commands"]
+    __slots__ = ["key_path", "all_passwords", "aes", "commands"]
 
     def __init__(self):
-        self.aes = None
-        self.commands = None
+        self.aes: Optional[AES] = None
+        self.commands: Optional[Dict[str, Tuple[str, Callable]]] = None
         self.all_passwords = None
-        self.key_path = None
-        self.running_commands = None
+        self.key_path: Optional[str] = None
 
-    def init_after_install(self):
+    #########################
+    # install pass storage
+    #########################
+
+    @staticmethod
+    def gen_aes_key(key_len=128):
+        text_key = [random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
+                    for _ in range(key_len // 8)]
+        symb_codes = [str(ord(symb)) for symb in text_key]
+        symb_codes = ["0" * (3 - len(code)) + code for code in symb_codes]
+        symb_codes = ''.join(symb_codes)
+
+        with open(PATH_TO_KEY, 'w') as file:
+            file.write(symb_codes)
+        print(f"key is written into '{PATH_TO_KEY}'")
+
+    def install(self):
+        self.gen_aes_key()
+
+    #########################
+    # run pass storage
+    #########################
+    @staticmethod
+    def is_file(file_path: str) -> bool:
+        return os.path.isfile(file_path)
+
+    def _init_key_path(self):
         try:
             key_path = os.environ[PASS_STORAGE_ENV_KEY_PATH]
         except Exception:
             key_path = input("input path to file with key >> ")
 
-        if self.check_key_path(key_path):
+        if self.is_key_path_correct(key_path):
             self.key_path = key_path
         else:
-            raise ValueError
+            raise ValueError(f"wrong key_path = {key_path}")
 
+    def _init_after_install(self):
+        self._init_key_path()
         self.aes = AES()
         self.aes.key = self.get_key()
         self.commands = {
@@ -40,13 +68,16 @@ class PassStorage:
             EDIT_RECORD: ("edit a record", self.edit),
             SHOW_HELP: ("show help", self.help),
             QUIT: ("quit", self.quit),
-            GEN_KEY: (f"gen key (will be in '{PATH_TO_KEY}')", self.gen_aes_key)
+            GEN_KEY: (f"gen key (will be written into '{PATH_TO_KEY}')", self.gen_aes_key)
         }
         # TODO: check this shit below
         self.all_passwords = self.decrypt_all()
-        self.running_commands = True
 
     def decrypt_all(self):
+        if not self.is_file(PATH_TO_PASSWORDS):
+            print(f"file {PATH_TO_PASSWORDS} does't exist")
+            return dict()
+
         with open(PATH_TO_PASSWORDS, "r") as file:
             encrypted_passwords = file.read()
         if encrypted_passwords == "":
@@ -218,13 +249,8 @@ class PassStorage:
         text_after = ''.join([chr(num) for num in l if num != 0])
         return text_after
 
-    @staticmethod
-    def check_key_path(key_path):
-        result = True
-        if type(key_path) is not str:
-            print(f"key_path type is not str. It is {type(key_path)}")
-            result = False
-        return result
+    def is_key_path_correct(self, key_path) -> bool:
+        return type(key_path) is str and self.is_file(key_path)
 
     def quit(self):
         saves = input("Save? y/[something else]")
@@ -233,25 +259,13 @@ class PassStorage:
             self.save()
         self.running_commands = False
 
-    def get_key(self):
+    def get_key(self) -> str:
         with open(self.key_path, "r") as file:
             text_key = file.read()
         return text_key
 
-    @staticmethod
-    def gen_aes_key(key_len=128):
-        text_key = [random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
-                    for _ in range(key_len // 8)]
-        symb_codes = [str(ord(symb)) for symb in text_key]
-        symb_codes = ["0" * (3 - len(code)) + code for code in symb_codes]
-        symb_codes = ''.join(symb_codes)
-
-        with open(PATH_TO_KEY, 'w') as file:
-            file.write(symb_codes)
-        print(f"key is written into '{PATH_TO_KEY}'")
-
     def run(self):
-        self.init_after_install()
+        self._init_after_install()
         print("input 'h' to print all commands")
         while self.running_commands:
             input_comand = input(">> ")
@@ -261,10 +275,6 @@ class PassStorage:
                 print("wrong command")
         print("finishing pass storage")
 
-    def install(self):
-        self.gen_aes_key()
-        file = open(PATH_TO_PASSWORDS, "w")
-        file.close()
 
 
 if __name__ == "__main__":
