@@ -310,7 +310,6 @@ class AES:
 
         return state
 
-
     # Small helpful functions block
     @staticmethod
     def mul_by_02(num):
