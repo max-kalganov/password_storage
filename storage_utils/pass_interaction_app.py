@@ -9,7 +9,7 @@ from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIS
     DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, GEN_KEY, PATH_TO_PASSWORDS, USERNAME_KEY, PASSWORD_KEY,\
     STOP, PATH_TO_KEY
 
-from storage_utils.utils import is_file, is_key_path_correct, get_str_from_num, get_text_from_list_of_nums
+from storage_utils.utils import is_file, is_key_path_correct, format_str_num, get_text_from_list_of_nums
 
 
 class PassStorage:
@@ -303,30 +303,26 @@ class PassStorage:
             self._print_all_accounts(service)
             num_to_edit = input(f"input account number to edit ['{STOP}' to stop] >> ")
 
-
-
-
     def _save(self):
         pack_passwords = json.dumps(self.all_passwords)
         self.aes.prepare_text(pack_passwords)
         encr_passwords = self.aes.encrypt()
-
         encr_text = self._get_encr_text(encr_passwords)
 
         with open(PATH_TO_PASSWORDS, "w") as file:
             file.write(encr_text)
 
-    def _get_encr_text(self, encr_pass):
+    @staticmethod
+    def _get_encr_text(encr_pass):
         encr_pass = [str(i) for i in encr_pass]
         max_len = len(max(encr_pass, key=len))
         if len(str(max_len)) > 1:
             print("error. too long numbers. mass will be stored in the file")
             return str(encr_pass)
         encr_text = str(max_len)
-        for num in encr_pass:
-            encr_text += get_str_from_num(max_len, num)
+        for str_num in encr_pass:
+            encr_text += format_str_num(max_len, str_num)
         return encr_text
-
 
 
 if __name__ == "__main__":
