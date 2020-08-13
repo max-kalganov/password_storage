@@ -33,7 +33,9 @@ class PassStorage:
 
         with open(PATH_TO_KEY, 'w') as file:
             file.write(symb_codes)
-        print(f"key is written into '{PATH_TO_KEY}'")
+        print(f"Key is written into '{PATH_TO_KEY}'")
+        print(f"You can move your key into any directory. "
+              f"But create an environment variable '{PASS_STORAGE_ENV_KEY_PATH}' with the path to the new location.")
 
     def install(self):
         self.gen_aes_key()
@@ -49,12 +51,14 @@ class PassStorage:
         try:
             key_path = os.environ[PASS_STORAGE_ENV_KEY_PATH]
         except Exception:
-            key_path = input("input path to file with key >> ")
+            key_path = input(f"input path to file with key "
+                             f"(or close the application and create an environment variable "
+                             f"'{PASS_STORAGE_ENV_KEY_PATH}' with the path to the location of the file with the key) >> ")
 
         if self.is_key_path_correct(key_path):
             self.key_path = key_path
         else:
-            raise ValueError(f"wrong key_path = {key_path}")
+            raise ValueError(f"wrong key path = {key_path}")
 
     def _init_after_install(self):
         self._init_key_path()
@@ -92,7 +96,7 @@ class PassStorage:
         try:
             dict_open_passwords = json.loads(open_pass)
         except json.decoder.JSONDecodeError as e:
-            print(f"error happened while opening passwords file")
+            print(f"error happened while opening passwords the file")
             raise e
         hash_value = dict_open_passwords[CUR_HASH_KEY]
 
