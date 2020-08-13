@@ -260,8 +260,11 @@ class PassStorage:
         saves = input("Save? y/[something else]")
         if saves == 'y':
             print("Saving...")
-            self.save()
-        self.running_commands = False
+            try:
+                self.save()
+                print(f"Passwords are saved into {PATH_TO_PASSWORDS}")
+            except Exception as e:
+                print(f"while saving error happened: {e}")
 
     def get_key(self) -> str:
         with open(self.key_path, "r") as file:
@@ -271,14 +274,15 @@ class PassStorage:
     def run(self):
         self._init_after_install()
         print("input 'h' to print all commands")
-        while self.running_commands:
+        while True:
             input_comand = input(">> ")
             if input_comand in self.commands.keys():
                 self.commands[input_comand][1]()
+                if input_comand == QUIT:
+                    break
             else:
                 print("wrong command")
         print("finishing pass storage")
-
 
 
 if __name__ == "__main__":
