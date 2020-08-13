@@ -14,6 +14,7 @@ from storage_utils.utils import is_file, is_key_path_correct, format_str_num, ge
 
 class PassStorage:
     __slots__ = ["key_path", "all_passwords", "aes", "commands"]
+    # TODO: unite show, delete, edit and so on
 
     def __init__(self):
         self.aes: Optional[AES] = None
