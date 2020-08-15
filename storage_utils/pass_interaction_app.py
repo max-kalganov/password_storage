@@ -1,19 +1,21 @@
 import json
 import os
 import random
+import pprint
 import string
 from typing import Optional, Dict, Tuple, Callable, List
 
 from storage_utils.AES import AES
-from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIST_ALL_SERVICES, ADD_RECORD,\
-    DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, GEN_KEY, PATH_TO_PASSWORDS, USERNAME_KEY, PASSWORD_KEY,\
-    STOP, PATH_TO_KEY
+from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIST_ALL_SERVICES, ADD_RECORD, \
+    DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, GEN_KEY, PATH_TO_PASSWORDS, USERNAME_KEY, PASSWORD_KEY, \
+    STOP, PATH_TO_KEY, BACKUP
 
 from storage_utils.utils import is_file, is_key_path_correct, format_str_num, get_text_from_list_of_nums
 
 
 class PassStorage:
     __slots__ = ["key_path", "all_passwords", "aes", "commands"]
+
     # TODO: unite show, delete, edit and so on
 
     def __init__(self):
@@ -101,6 +103,15 @@ class PassStorage:
               f"'{PASS_STORAGE_ENV_KEY_PATH}' with the path to the new location.")
 
     #########################
+    #      create backup
+    #########################
+
+    def backup(self):
+        with open('data/backup.json', 'w') as fp:
+            json.dump(self.all_passwords, fp)
+        print('backup save in data/backup.json')
+
+    #########################
     # install pass storage
     #########################
 
@@ -110,6 +121,8 @@ class PassStorage:
     #########################
     # run pass storage
     #########################
+    def execute_command(self, command):
+        pass
 
     def run(self):
         self._init_after_install()
@@ -188,7 +201,8 @@ class PassStorage:
             EDIT_RECORD: ("edit a record", self.edit),
             SHOW_HELP: ("show help", self.help),
             QUIT: ("quit", self.quit),
-            GEN_KEY: (f"gen key (will be written into '{PATH_TO_KEY}')", self.gen_aes_key)
+            GEN_KEY: (f"gen key (will be written into '{PATH_TO_KEY}')", self.gen_aes_key),
+            BACKUP: (f"create backup into json", self.backup)
         }
         self.all_passwords = self._decrypt_all()
 
@@ -218,7 +232,7 @@ class PassStorage:
 
     def _account_info(self, service: str, acc_num: int) -> str:
         return f"username = {self.all_passwords[service][acc_num][USERNAME_KEY]}   |   " \
-               f"password = {self.all_passwords[service][acc_num][PASSWORD_KEY]}"
+            f"password = {self.all_passwords[service][acc_num][PASSWORD_KEY]}"
 
     def _print_account_full(self, service: str, acc_num: int):
         for k, v in self.all_passwords[service][acc_num].items():
@@ -326,5 +340,17 @@ class PassStorage:
 
 
 if __name__ == "__main__":
-    p = PassStorage()
-    p.run()
+    import argparse
+
+    parser = argparse.ArgumentParser('Command line parser')
+    parser.add_argument('-s', type=str, default=None)
+    parser.add_argument('-acc', type=int, default=None)
+    parser.add_argument('-p', type=bool, default=False)
+
+    args = parser.parse_args()
+    if len(args.__dict__):
+        p = PassStorage()
+        p.run()
+    else:
+        p = PassStorage()
+        p.run()

@@ -26,6 +26,7 @@ SHOW_HELP = "h"
 STOP = 's'
 QUIT = "q"
 GEN_KEY = "gk"
+BACKUP = "bu"
 
 
 ##############################################
