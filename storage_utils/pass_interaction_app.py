@@ -1,16 +1,16 @@
-import json
 import os
+import json
 import random
-import pprint
 import string
+import pyperclip
+
 from typing import Optional, Dict, Tuple, Callable, List
 
 from storage_utils.AES import AES
+from storage_utils.utils import is_file, is_key_path_correct, format_str_num, get_text_from_list_of_nums
 from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIST_ALL_SERVICES, ADD_RECORD, \
     DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, GEN_KEY, PATH_TO_PASSWORDS, USERNAME_KEY, PASSWORD_KEY, \
     STOP, PATH_TO_KEY, BACKUP
-
-from storage_utils.utils import is_file, is_key_path_correct, format_str_num, get_text_from_list_of_nums
 
 
 class PassStorage:
@@ -98,8 +98,30 @@ class PassStorage:
     #########################
     # run pass storage
     #########################
-    def execute_command(self, command):
-        pass
+    def info_acc_in_service(self, s, a):
+        return list(filter(lambda x: x[USERNAME_KEY] == a or a is None, self.all_passwords[s]))
+
+    def run_with_params(self, s, acc, p):
+        output = []
+        self._init_after_install()
+        for service, acc_list in self.all_passwords.items():
+            for account_info in acc_list:
+                if (service == s or s is None) and (account_info[USERNAME_KEY] == acc or acc is None):
+                    if p == 'short':
+                        output.append({'service': service,
+                                       USERNAME_KEY: account_info[USERNAME_KEY],
+                                       PASSWORD_KEY: account_info[PASSWORD_KEY]})
+                    else:
+                        output.append({'service': service,
+                                       **account_info})
+
+        if p is None:
+            if len(output) == 1:
+                pyperclip.copy(output[0][PASSWORD_KEY])
+            else:
+                print('found many accounts')
+        else:
+            print(output)
 
     def run(self):
         self._init_after_install()
@@ -324,20 +346,3 @@ class PassStorage:
 
             self._print_account_full(service, acc_num)
             field_name = input(f"input field{full_action_descr} ['{STOP}' to stop] >> ")
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser('Command line parser')
-    parser.add_argument('-s', type=str, default=None)
-    parser.add_argument('-acc', type=int, default=None)
-    parser.add_argument('-p', type=bool, default=False)
-
-    args = parser.parse_args()
-    if len(args.__dict__):
-        p = PassStorage()
-        p.run()
-    else:
-        p = PassStorage()
-        p.run()
