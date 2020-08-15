@@ -25,6 +25,7 @@ EDIT_RECORD = "ed"
 SHOW_HELP = "h"
 STOP = 's'
 QUIT = "q"
+BACKUP = "bu"
 CHANGE_KEY = "ck"
 
 

@@ -2,3 +2,6 @@
 venv/*
 key.txt
 __pycache__/*
+
+backup.json
+storage_utils/__pycache__/

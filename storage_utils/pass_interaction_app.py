@@ -1,19 +1,22 @@
-import json
 import os
+import json
 import random
 import string
+import pyperclip
+
 from typing import Optional, Dict, Tuple, Callable, List
 
 from storage_utils.AES import AES
-from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIST_ALL_SERVICES, ADD_RECORD,\
-    DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, CHANGE_KEY, PATH_TO_PASSWORDS, USERNAME_KEY, PASSWORD_KEY,\
-    STOP, PATH_TO_KEY
+from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIST_ALL_SERVICES, ADD_RECORD, \
+    DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, CHANGE_KEY, PATH_TO_PASSWORDS, USERNAME_KEY, PASSWORD_KEY, \
+    STOP, PATH_TO_KEY, BACKUP
 
 from storage_utils.utils import is_file, is_key_path_correct, format_str_num, get_text_from_list_of_nums
 
 
 class PassStorage:
     __slots__ = ["key_path", "all_passwords", "aes", "commands", "new_key"]
+
     # TODO: unite show, delete, edit and so on
 
     def __init__(self):
@@ -84,6 +87,27 @@ class PassStorage:
     #########################
     # run pass storage
     #########################
+    def run_with_params(self, s, acc, p):
+        output = []
+        self._init_after_install()
+        for service, acc_list in self.all_passwords.items():
+            for account_info in acc_list:
+                if (service == s or s is None) and (account_info[USERNAME_KEY] == acc or acc is None):
+                    if p == 'short':
+                        output.append({'service': service,
+                                       USERNAME_KEY: account_info[USERNAME_KEY],
+                                       PASSWORD_KEY: account_info[PASSWORD_KEY]})
+                    else:
+                        output.append({'service': service,
+                                       **account_info})
+
+        if p is None:
+            if len(output) == 1:
+                pyperclip.copy(output[0][PASSWORD_KEY])
+            else:
+                print('found many accounts')
+        else:
+            print(output)
 
     def run(self):
         self._init_after_install()
@@ -185,6 +209,7 @@ class PassStorage:
             SHOW_HELP: ("show help", self.help),
             QUIT: ("quit", self.quit),
             CHANGE_KEY: (f"change key", self._change_key)
+            BACKUP: (f"create backup into json", self.backup)
         }
         self.all_passwords = self._decrypt_all()
 
@@ -217,7 +242,7 @@ class PassStorage:
 
     def _account_info(self, service: str, acc_num: int) -> str:
         return f"username = {self.all_passwords[service][acc_num][USERNAME_KEY]}   |   " \
-               f"password = {self.all_passwords[service][acc_num][PASSWORD_KEY]}"
+            f"password = {self.all_passwords[service][acc_num][PASSWORD_KEY]}"
 
     def _print_account_full(self, service: str, acc_num: int):
         for k, v in self.all_passwords[service][acc_num].items():
@@ -332,8 +357,3 @@ class PassStorage:
 
             self._print_account_full(service, acc_num)
             field_name = input(f"input field{full_action_descr} ['{STOP}' to stop] >> ")
-
-
-if __name__ == "__main__":
-    p = PassStorage()
-    p.run()
