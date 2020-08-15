@@ -27,13 +27,7 @@ class PassStorage:
     #########################
 
     def show_services(self):
-        service = self._input_service()
-        while service != STOP:
-            self._show_accounts(service)
-
-            self.list_all()
-            service = self._input_service()
-
+        self._process_services(self._show_accounts)
         print("finish show_records")
 
     def list_all(self):
@@ -48,28 +42,11 @@ class PassStorage:
         print("finish adding")
 
     def delete(self):
-        service = self._input_service()
-        while service != STOP:
-            ans = input("delete the whole service? [y/n]")
-            if ans == "y":
-                del self.all_passwords[service]
-            else:
-                self._delete_accounts(service)
-
-            self.list_all()
-            print(f"input '{STOP}' to stop")
-            service = self._input_service()
+        self._process_services(self._delete_service)
         print("finish deleting")
 
     def edit(self):
-        service = self._input_service()
-        while service != STOP:
-            self._edit_accounts(service)
-
-            self.list_all()
-            print(f"input '{STOP}' to stop")
-            service = self._input_service()
-
+        self._process_services(self._edit_accounts)
         print("finish editing")
 
     def help(self):
@@ -225,15 +202,7 @@ class PassStorage:
             print(f"{k} = {v}")
 
     def _show_accounts(self, service: str):
-        self._print_all_accounts(service)
-        acc_num = input(f"input num of acc to show full info (or '{STOP}' to stop) \n>> ")
-        while acc_num != STOP:
-            acc_num, check_res = self._check_acc_num(acc_num, service)
-            if check_res is True:
-                self._print_account_full(service, acc_num)
-
-            self._print_all_accounts(service)
-            acc_num = input(f"input num of acc to show full info(or '{STOP}' to stop) \n>> ")
+        self._process_accounts(service, action_descr="to show full info", command=self._print_account_full)
 
     def _add_account(self, service: str):
         username = input("input username >> ")
@@ -251,57 +220,41 @@ class PassStorage:
 
         self.all_passwords[service].append(new_account)
 
+    def _delete_service(self, service):
+        ans = input("delete the whole service? [y/n]")
+        if ans == "y":
+            del self.all_passwords[service]
+        else:
+            self._delete_accounts(service)
+
     def _delete_fields(self, service: str, acc_num: int):
-        self._print_account_full(service, acc_num)
-        field_name = input(f"input field name to delete ['{STOP}' to stop] >> ")
-        while field_name != STOP:
+        def delete_field(cur_service, cur_acc_num, field_name):
             if field_name in {USERNAME_KEY, PASSWORD_KEY}:
                 print("deleting username or password is prohibited")
-            elif field_name in self.all_passwords[service][acc_num]:
-                del self.all_passwords[service][acc_num][field_name]
             else:
-                print(f"field name {field_name} not found.")
+                del self.all_passwords[service][acc_num][field_name]
 
-            self._print_account_full(service, acc_num)
-            field_name = input(f"input field name to delete ['{STOP}' to stop] >> ")
+        self._process_fields(service, acc_num, action_descr="to delete", command=delete_field)
 
     def _delete_accounts(self, service: str):
-        self._print_all_accounts(service)
-        acc_num = input(f"input account number ['{STOP}' to stop] >> ")
-        while acc_num != STOP:
+        def delete_acc(cur_service, acc_num):
             ans = input("delete the whole account? [y/n]")
-            acc_num, check_res = self._check_acc_num(acc_num, service)
-            if check_res and ans == "y":
-                del self.all_passwords[service][acc_num]
-            elif check_res:
-                self._delete_fields(service, acc_num)
-
-            self._print_all_accounts(service)
-            acc_num = input(f"input account number ['{STOP}' to stop] >> ")
-
-    def _edit_acc(self, service, acc_num):
-        self._print_account_full(service, acc_num)
-        field_name = input(f"input field to edit ['{STOP}' to stop] >> ")
-
-        while field_name != STOP:
-            if field_name in self.all_passwords[service][acc_num].keys():
-                f_value = input("input new field value >> ")
-                self.all_passwords[service][acc_num][field_name] = f_value
+            if ans == "y":
+                del self.all_passwords[cur_service][acc_num]
             else:
-                print(f"There is no such field = {field_name}")
-            self._print_account_full(service, acc_num)
-            field_name = input(f"input field to edit ['{STOP}' to stop] >> ")
+                self._delete_fields(cur_service, acc_num)
+
+        self._process_accounts(service, action_descr="", command=delete_acc)
+
+    def _edit_fields(self, service, acc_num):
+        def edit_field(cur_service, cur_acc_num, field_name):
+            f_value = input("input new field value >> ")
+            self.all_passwords[cur_service][cur_acc_num][field_name] = f_value
+
+        self._process_fields(service, acc_num, "to edit", command=edit_field)
 
     def _edit_accounts(self, service: str):
-        self._print_all_accounts(service)
-        num_to_edit = input(f"input account number to edit ['{STOP}' to stop] >> ")
-        while num_to_edit != STOP:
-            num_to_edit, check_res = self._check_acc_num(num_to_edit, service)
-            if check_res is True:
-                self._edit_acc(service, num_to_edit)
-
-            self._print_all_accounts(service)
-            num_to_edit = input(f"input account number to edit ['{STOP}' to stop] >> ")
+        self._process_accounts(service, action_descr="to edit", command=self._edit_fields)
 
     def _save(self):
         pack_passwords = json.dumps(self.all_passwords)
@@ -323,6 +276,40 @@ class PassStorage:
         for str_num in encr_pass:
             encr_text += format_str_num(max_len, str_num)
         return encr_text
+
+    def _process_services(self, command: Callable):
+        service = self._input_service()
+        while service != STOP:
+            command(service)
+
+            self.list_all()
+            service = self._input_service()
+
+    def _process_accounts(self, service: str, action_descr: str, command: Callable):
+        full_action_descr = ' ' + action_descr if action_descr else ''
+        self._print_all_accounts(service)
+        acc_num = input(f"input account number{full_action_descr} ['{STOP}' to stop] >> ")
+        while acc_num != STOP:
+            acc_num, check_res = self._check_acc_num(acc_num, service)
+            if check_res is True:
+                command(service, acc_num)
+
+            self._print_all_accounts(service)
+            acc_num = input(f"input account number {full_action_descr} ['{STOP}' to stop] >> ")
+
+    def _process_fields(self, service: str, acc_num: int, action_descr: str, command: Callable):
+        full_action_descr = ' ' + action_descr if action_descr else ''
+        self._print_account_full(service, acc_num)
+        field_name = input(f"input field{full_action_descr} ['{STOP}' to stop] >> ")
+
+        while field_name != STOP:
+            if field_name in self.all_passwords[service][acc_num].keys():
+                command(service, acc_num, field_name)
+            else:
+                print(f"There is no such field = {field_name}")
+
+            self._print_account_full(service, acc_num)
+            field_name = input(f"input field{full_action_descr} ['{STOP}' to stop] >> ")
 
 
 if __name__ == "__main__":
