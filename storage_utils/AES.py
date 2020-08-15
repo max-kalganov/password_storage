@@ -313,7 +313,7 @@ class AES:
     # Small helpful functions block
     @staticmethod
     def mul_by_02(num):
-        """The function multiplies by 2 in Galua space"""
+        """The function multiplies by 2 in Galois field"""
 
         if num < 0x80:
             res = (num << 1)
@@ -324,11 +324,11 @@ class AES:
 
     @staticmethod
     def mul_by_03(num):
-        """The function multiplies by 3 in Galua space
+        """The function multiplies by 3 in Galois field
         example: 0x03*num = (0x02 + 0x01)num = num*0x02 + num
-        Addition in Galua field is oparetion XOR
+        Addition in Galois field is oparetion XOR
         """
-        return (AES.mul_by_02(num) ^ num)
+        return AES.mul_by_02(num) ^ num
 
     @staticmethod
     def mul_by_09(num):
