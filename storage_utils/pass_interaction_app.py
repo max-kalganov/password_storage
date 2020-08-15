@@ -6,14 +6,14 @@ from typing import Optional, Dict, Tuple, Callable, List
 
 from storage_utils.AES import AES
 from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIST_ALL_SERVICES, ADD_RECORD,\
-    DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, GEN_KEY, PATH_TO_PASSWORDS, USERNAME_KEY, PASSWORD_KEY,\
+    DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, CHANGE_KEY, PATH_TO_PASSWORDS, USERNAME_KEY, PASSWORD_KEY,\
     STOP, PATH_TO_KEY
 
 from storage_utils.utils import is_file, is_key_path_correct, format_str_num, get_text_from_list_of_nums
 
 
 class PassStorage:
-    __slots__ = ["key_path", "all_passwords", "aes", "commands"]
+    __slots__ = ["key_path", "all_passwords", "aes", "commands", "new_key"]
     # TODO: unite show, delete, edit and so on
 
     def __init__(self):
@@ -21,6 +21,7 @@ class PassStorage:
         self.commands: Optional[Dict[str, Tuple[str, Callable]]] = None
         self.all_passwords: Optional[Dict[str, List[Dict[str, str]]]] = None
         self.key_path: Optional[str] = None
+        self.new_key: Optional[str] = None
 
     #########################
     # commands
@@ -57,32 +58,28 @@ class PassStorage:
         saves = input("Save? y/[something else]")
         if saves == 'y':
             print("Saving...")
+            if self.new_key is not None:
+                self.aes.key = self.new_key
             try:
                 self._save()
                 print(f"Passwords are saved into {PATH_TO_PASSWORDS}")
+
+                if self.new_key is not None:
+                    try:
+                        self._save_key(new_key=self.new_key, key_path=self.key_path)
+                    except Exception as e:
+                        print(f"while saving key error happened: {e}")
+                        self._save_key(new_key=self.new_key, key_path=PATH_TO_KEY)
+
             except Exception as e:
                 print(f"while saving error happened: {e}")
-
-    @staticmethod
-    def gen_aes_key(key_len=128):
-        text_key = [random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
-                    for _ in range(key_len // 8)]
-        symb_codes = [str(ord(symb)) for symb in text_key]
-        symb_codes = ["0" * (3 - len(code)) + code for code in symb_codes]
-        symb_codes = ''.join(symb_codes)
-
-        with open(PATH_TO_KEY, 'w') as file:
-            file.write(symb_codes)
-        print(f"Key is written into '{PATH_TO_KEY}'")
-        print(f"You can move your key into any directory and create an environment variable "
-              f"'{PASS_STORAGE_ENV_KEY_PATH}' with the path to the new location.")
 
     #########################
     # install pass storage
     #########################
 
     def install(self):
-        self.gen_aes_key()
+        self._gen_aes_key()
 
     #########################
     # run pass storage
@@ -105,13 +102,35 @@ class PassStorage:
     # utils
     #########################
 
+    @staticmethod
+    def _save_key(new_key, key_path):
+        with open(key_path, 'w') as file:
+            file.write(new_key)
+
+        print(f"Key is written into '{key_path}'")
+        if key_path == PATH_TO_KEY:
+            print(f"You can move your key into any directory and create an environment variable "
+                  f"'{PASS_STORAGE_ENV_KEY_PATH}' with the path to the new location.")
+
+    def _gen_aes_key(self, key_len=128, key_path: str = PATH_TO_KEY, save_in_file: bool = True):
+        text_key = [random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
+                    for _ in range(key_len // 8)]
+        symb_codes = [str(ord(symb)) for symb in text_key]
+        symb_codes = ["0" * (3 - len(code)) + code for code in symb_codes]
+        symb_codes = ''.join(symb_codes)
+
+        if save_in_file:
+            self._save_key(new_key=symb_codes, key_path=key_path)
+        return symb_codes
+
     def _init_key_path(self):
         try:
             key_path = os.environ[PASS_STORAGE_ENV_KEY_PATH]
         except Exception:
-            key_path = input(f"input path to file with key "
-                             f"(or close the application and create an environment variable "
-                             f"'{PASS_STORAGE_ENV_KEY_PATH}' with the path to the location of the file with the key) >> ")
+            key_path = input(f"input path to file with key\n "
+                             f"(or close the application and create "
+                             f"an environment variable '{PASS_STORAGE_ENV_KEY_PATH}'. \n"
+                             f"It should contain the path to the location of the file with the key) >> ")
 
         if is_key_path_correct(key_path):
             self.key_path = key_path
@@ -165,7 +184,7 @@ class PassStorage:
             EDIT_RECORD: ("edit a record", self.edit),
             SHOW_HELP: ("show help", self.help),
             QUIT: ("quit", self.quit),
-            GEN_KEY: (f"gen key (will be written into '{PATH_TO_KEY}')", self.gen_aes_key)
+            CHANGE_KEY: (f"change key", self._change_key)
         }
         self.all_passwords = self._decrypt_all()
 
@@ -177,6 +196,9 @@ class PassStorage:
             print("wrong service name")
             self.list_all()
         return service
+
+    def _change_key(self):
+        self.new_key = self._gen_aes_key(key_path=self.key_path, save_in_file=False)
 
     def _print_all_accounts(self, service):
         for num in range(len(self.all_passwords[service])):

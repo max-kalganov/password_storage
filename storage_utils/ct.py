@@ -25,7 +25,7 @@ EDIT_RECORD = "ed"
 SHOW_HELP = "h"
 STOP = 's'
 QUIT = "q"
-GEN_KEY = "gk"
+CHANGE_KEY = "ck"
 
 
 ##############################################
