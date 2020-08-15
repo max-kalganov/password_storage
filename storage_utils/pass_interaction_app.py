@@ -32,7 +32,6 @@ class PassStorage:
             self._show_accounts(service)
 
             self.list_all()
-            print(f"input '{STOP}' to stop")
             service = self._input_service()
 
         print("finish show_records")
@@ -195,8 +194,8 @@ class PassStorage:
 
     def _input_service(self):
         while True:
-            service = input("input service >> ")
-            if service in self.all_passwords.keys():
+            service = input(f"input service (or '{STOP}' to stop)>> ")
+            if service in self.all_passwords.keys() or service == STOP:
                 break
             print("wrong service name")
             self.list_all()
@@ -227,7 +226,7 @@ class PassStorage:
 
     def _show_accounts(self, service: str):
         self._print_all_accounts(service)
-        acc_num = input(f"input num of acc to show full info(or '{STOP}' to stop) \n>> ")
+        acc_num = input(f"input num of acc to show full info (or '{STOP}' to stop) \n>> ")
         while acc_num != STOP:
             acc_num, check_res = self._check_acc_num(acc_num, service)
             if check_res is True:
