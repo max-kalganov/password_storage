@@ -8,7 +8,7 @@ from typing import Optional, Dict, Tuple, Callable, List, Union
 
 from storage_utils.AES import AES
 from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIST_ALL_SERVICES, ADD_RECORD, \
-    DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, CHANGE_KEY, PATH_TO_PASSWORDS, USERNAME_KEY, PASSWORD_KEY, \
+    DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, CHANGE_KEY, PATH_TO_PASSWORDS, LOGIN, PASSWORD, \
     STOP, PATH_TO_KEY, BACKUP
 
 from storage_utils.utils import is_file, is_key_path_correct, format_str_num, get_text_from_list_of_nums
@@ -102,18 +102,18 @@ class PassStorage:
         self._init_after_install()
         for service, acc_list in self.all_passwords.items():
             for account_info in acc_list:
-                if (service == s or s is None) and (account_info[USERNAME_KEY] == acc or acc is None):
+                if (service == s or s is None) and (account_info[LOGIN] == acc or acc is None):
                     if p == 'short':
                         output.append({'service': service,
-                                       USERNAME_KEY: account_info[USERNAME_KEY],
-                                       PASSWORD_KEY: account_info[PASSWORD_KEY]})
+                                       LOGIN: account_info[LOGIN],
+                                       PASSWORD: account_info[PASSWORD]})
                     else:
                         output.append({'service': service,
                                        **account_info})
 
         if p is None:
             if len(output) == 1:
-                pyperclip.copy(output[0][PASSWORD_KEY])
+                pyperclip.copy(output[0][PASSWORD])
             else:
                 print('found many accounts')
         else:
@@ -261,8 +261,8 @@ class PassStorage:
         return None, False
 
     def _account_info(self, service: str, acc_num: int) -> str:
-        return f"{USERNAME_KEY} = {self.all_passwords[service][acc_num][USERNAME_KEY]}   |   " \
-               f"{PASSWORD_KEY} = {self.all_passwords[service][acc_num][PASSWORD_KEY]}"
+        return f"{LOGIN} = {self.all_passwords[service][acc_num][LOGIN]}   |   " \
+               f"{PASSWORD} = {self.all_passwords[service][acc_num][PASSWORD]}"
 
     def _print_account_full(self, service: str, acc_num: int):
         for k, v in self.all_passwords[service][acc_num].items():
@@ -272,7 +272,7 @@ class PassStorage:
         self._process_accounts(service, action_descr="to show full info", command=self._print_account_full)
 
     def _get_all_logins_to_acc_num(self, service) -> Dict[str, int]:
-        return {acc[USERNAME_KEY]: i for i, acc in enumerate(self.all_passwords[service])}
+        return {acc[LOGIN]: i for i, acc in enumerate(self.all_passwords[service])}
 
     def _add_account(self, service: str):
         all_logins = self._get_all_logins_to_acc_num(service)
@@ -281,8 +281,8 @@ class PassStorage:
         if login not in all_logins:
             password = input("input password >> ")
             cur_account = {
-                USERNAME_KEY: login,
-                PASSWORD_KEY: password
+                LOGIN: login,
+                PASSWORD: password
             }
             self.all_passwords[service].append(cur_account)
             add_field = input("add a field[y/n] >> ")
@@ -305,7 +305,7 @@ class PassStorage:
 
     def _delete_fields(self, service: str, acc_num: int):
         def delete_field(cur_service, cur_acc_num, field_name):
-            if field_name in {USERNAME_KEY, PASSWORD_KEY}:
+            if field_name in {LOGIN, PASSWORD}:
                 print("deleting login or password is prohibited")
             else:
                 del self.all_passwords[service][acc_num][field_name]
@@ -335,7 +335,7 @@ class PassStorage:
         all_logins = self._get_all_logins_to_acc_num(service)
 
         def edit_field(cur_service, cur_acc_num, field_name):
-            if field_name == USERNAME_KEY:
+            if field_name == LOGIN:
                 f_value = self._input_new_field(all_logins.keys(), "input new field value")
                 all_logins[f_value] = all_logins[field_name]
                 del all_logins[field_name]

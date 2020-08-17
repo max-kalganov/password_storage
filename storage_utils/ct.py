@@ -9,8 +9,8 @@ PASS_STORAGE_ENV_KEY_PATH = "PASS_STORAGE_KEY_PATH"
 # KEYS IN DATA
 ##############################################
 
-USERNAME_KEY = 'username'
-PASSWORD_KEY = 'password'
+LOGIN = 'login'
+PASSWORD = 'password'
 
 
 ##############################################
