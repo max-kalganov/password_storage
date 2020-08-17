@@ -1,7 +1,7 @@
 .idea/*
 venv/*
 key.txt
-__pycache__/*
+**/__pycache__/*
 
 backup.json
 storage_utils/__pycache__/

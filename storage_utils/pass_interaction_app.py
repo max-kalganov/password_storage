@@ -38,7 +38,7 @@ class PassStorage:
         print("finish list_all")
 
     def add(self):
-        cur_service = input("input service name >> ")
+        cur_service = input("input service name >> ").strip()
         self.all_passwords.setdefault(cur_service, [])
 
         self._add_account(cur_service)
@@ -59,7 +59,7 @@ class PassStorage:
             print(f" {k} - {v[0]}")
 
     def quit(self):
-        saves = input("Save? y/[something else]")
+        saves = input("Save? y/[something else]").strip()
         if saves == 'y':
             print("Saving...")
             if self.new_key is not None:
@@ -123,7 +123,7 @@ class PassStorage:
         self._init_after_install()
         print("input 'h' to print all commands")
         while True:
-            input_command = input(">> ")
+            input_command = input(">> ").strip()
             if input_command in self.commands.keys():
                 self.commands[input_command][1]()
                 if input_command == QUIT:
@@ -161,7 +161,7 @@ class PassStorage:
         try:
             key_path = os.environ[PASS_STORAGE_ENV_KEY_PATH]
         except Exception:
-            key_path = input(f"input path to file with key\n "
+            key_path = input(f"input path to file with key\n"
                              f"(or close the application and create "
                              f"an environment variable '{PASS_STORAGE_ENV_KEY_PATH}'. \n"
                              f"It should contain the path to the location of the file with the key) >> ")
@@ -225,9 +225,9 @@ class PassStorage:
 
     @staticmethod
     def _input_new_field(fields, msg: str) -> Union[str, STOP]:
-        field = input(msg + f" >> ")
+        field = input(msg + f" >> ").strip()
         while field in fields:
-            field = input(f"{msg} (or '{STOP}' to stop) >> ")
+            field = input(f"{msg} (or '{STOP}' to stop) >> ").strip()
             if field not in fields or field == STOP:
                 break
             print(f"{field} is already in {fields}")
@@ -235,7 +235,7 @@ class PassStorage:
 
     def _input_service(self):
         while True:
-            service = input(f"input service (or '{STOP}' to stop)>> ")
+            service = input(f"input service (or '{STOP}' to stop)>> ").strip()
             if service in self.all_passwords.keys() or service == STOP:
                 break
             print("wrong service name")
@@ -277,27 +277,27 @@ class PassStorage:
     def _add_account(self, service: str):
         all_logins = self._get_all_logins_to_acc_num(service)
         add_field = "y"
-        login = input("input login >> ")
+        login = input("input login >> ").strip()
         if login not in all_logins:
-            password = input("input password >> ")
+            password = input("input password >> ").strip()
             cur_account = {
                 LOGIN: login,
                 PASSWORD: password
             }
             self.all_passwords[service].append(cur_account)
-            add_field = input("add a field[y/n] >> ")
+            add_field = input("add a field[y/n] >> ").strip()
         else:
             cur_account = self.all_passwords[service][all_logins[login]]
             self._print_account_full(service, all_logins[login])
 
         while add_field == "y":
             field = self._input_new_field(cur_account.keys(), "input a field name")
-            f_value = input("input a field value >> ")
+            f_value = input("input a field value >> ").strip()
             cur_account[field] = f_value
-            add_field = input("add a field[y/n] >> ")
+            add_field = input("add a field[y/n] >> ").strip()
 
     def _delete_service(self, service):
-        ans = input("delete the whole service? [y/n]")
+        ans = input("delete the whole service? [y/n]").strip()
         if ans == "y":
             del self.all_passwords[service]
         else:
@@ -314,7 +314,7 @@ class PassStorage:
 
     def _delete_accounts(self, service: str):
         def delete_acc(cur_service, acc_num):
-            ans = input("delete the whole account? [y/n]")
+            ans = input("delete the whole account? [y/n]").strip()
             if ans == "y":
                 del self.all_passwords[cur_service][acc_num]
             else:
@@ -323,13 +323,13 @@ class PassStorage:
         self._process_accounts(service, action_descr="", command=delete_acc)
 
     def _edit_service_name(self):
-        edit_service_name = input("edit service name? (y/n) >> ")
+        edit_service_name = input("edit service name? (y/n) >> ").strip()
         while edit_service_name == "y":
             old_service_name = self._input_service()
             new_service_name = self._input_new_field(self.all_passwords.keys(), "input new service name")
             self.all_passwords[new_service_name] = self.all_passwords[old_service_name]
             del self.all_passwords[old_service_name]
-            edit_service_name = input("edit service name? (y/n) >> ")
+            edit_service_name = input("edit service name? (y/n) >> ").strip()
 
     def _edit_fields(self, service, acc_num):
         all_logins = self._get_all_logins_to_acc_num(service)
@@ -340,7 +340,7 @@ class PassStorage:
                 all_logins[f_value] = all_logins[field_name]
                 del all_logins[field_name]
             else:
-                f_value = input("input new field value >> ")
+                f_value = input("input new field value >> ").strip()
 
             self.all_passwords[cur_service][cur_acc_num][field_name] = f_value
 
@@ -381,19 +381,19 @@ class PassStorage:
     def _process_accounts(self, service: str, action_descr: str, command: Callable):
         full_action_descr = ' ' + action_descr if action_descr else ''
         self._print_all_accounts(service)
-        acc_num = input(f"input account number{full_action_descr} ['{STOP}' to stop] >> ")
+        acc_num = input(f"input account number{full_action_descr} ['{STOP}' to stop] >> ").strip()
         while acc_num != STOP:
             acc_num, check_res = self._check_acc_num(acc_num, service)
             if check_res is True:
                 command(service, acc_num)
 
             self._print_all_accounts(service)
-            acc_num = input(f"input account number {full_action_descr} ['{STOP}' to stop] >> ")
+            acc_num = input(f"input account number {full_action_descr} ['{STOP}' to stop] >> ").strip()
 
     def _process_fields(self, service: str, acc_num: int, action_descr: str, command: Callable):
         full_action_descr = ' ' + action_descr if action_descr else ''
         self._print_account_full(service, acc_num)
-        field_name = input(f"input field{full_action_descr} ['{STOP}' to stop] >> ")
+        field_name = input(f"input field{full_action_descr} ['{STOP}' to stop] >> ").strip()
 
         while field_name != STOP:
             if field_name in self.all_passwords[service][acc_num].keys():
@@ -402,4 +402,4 @@ class PassStorage:
                 print(f"There is no such field = {field_name}")
 
             self._print_account_full(service, acc_num)
-            field_name = input(f"input field{full_action_descr} ['{STOP}' to stop] >> ")
+            field_name = input(f"input field{full_action_descr} ['{STOP}' to stop] >> ").strip()
