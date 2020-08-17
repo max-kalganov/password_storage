@@ -1,1 +1,2 @@
-numpy
+numpy==1.19.1
+pyperclip==1.8.0
