@@ -50,6 +50,7 @@ class PassStorage:
 
     # TODO: ? unify edit and add
     def edit(self):
+        self._edit_service_name()
         self._process_services(self._edit_accounts)
         print("finish editing")
 
@@ -260,8 +261,8 @@ class PassStorage:
         return None, False
 
     def _account_info(self, service: str, acc_num: int) -> str:
-        return f"login = {self.all_passwords[service][acc_num][USERNAME_KEY]}   |   " \
-            f"password = {self.all_passwords[service][acc_num][PASSWORD_KEY]}"
+        return f"{USERNAME_KEY} = {self.all_passwords[service][acc_num][USERNAME_KEY]}   |   " \
+               f"{PASSWORD_KEY} = {self.all_passwords[service][acc_num][PASSWORD_KEY]}"
 
     def _print_account_full(self, service: str, acc_num: int):
         for k, v in self.all_passwords[service][acc_num].items():
@@ -270,8 +271,11 @@ class PassStorage:
     def _show_accounts(self, service: str):
         self._process_accounts(service, action_descr="to show full info", command=self._print_account_full)
 
+    def _get_all_logins_to_acc_num(self, service) -> Dict[str, int]:
+        return {acc[USERNAME_KEY]: i for i, acc in enumerate(self.all_passwords[service])}
+
     def _add_account(self, service: str):
-        all_logins = {acc[USERNAME_KEY]: i for i, acc in enumerate(self.all_passwords[service])}
+        all_logins = self._get_all_logins_to_acc_num(service)
         add_field = "y"
         login = input("input login >> ")
         if login not in all_logins:
@@ -318,9 +322,26 @@ class PassStorage:
 
         self._process_accounts(service, action_descr="", command=delete_acc)
 
+    def _edit_service_name(self):
+        edit_service_name = input("edit service name? (y/n) >> ")
+        while edit_service_name == "y":
+            old_service_name = self._input_service()
+            new_service_name = self._input_new_field(self.all_passwords.keys(), "input new service name")
+            self.all_passwords[new_service_name] = self.all_passwords[old_service_name]
+            del self.all_passwords[old_service_name]
+            edit_service_name = input("edit service name? (y/n) >> ")
+
     def _edit_fields(self, service, acc_num):
+        all_logins = self._get_all_logins_to_acc_num(service)
+
         def edit_field(cur_service, cur_acc_num, field_name):
-            f_value = input("input new field value >> ")
+            if field_name == USERNAME_KEY:
+                f_value = self._input_new_field(all_logins.keys(), "input new field value")
+                all_logins[f_value] = all_logins[field_name]
+                del all_logins[field_name]
+            else:
+                f_value = input("input new field value >> ")
+
             self.all_passwords[cur_service][cur_acc_num][field_name] = f_value
 
         self._process_fields(service, acc_num, "to edit", command=edit_field)
