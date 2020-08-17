@@ -5,3 +5,4 @@ key.txt
 
 backup.json
 storage_utils/__pycache__/
+run_storage_bash.sh
