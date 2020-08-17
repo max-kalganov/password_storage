@@ -208,7 +208,7 @@ class PassStorage:
             EDIT_RECORD: ("edit a record", self.edit),
             SHOW_HELP: ("show help", self.help),
             QUIT: ("quit", self.quit),
-            CHANGE_KEY: (f"change key", self._change_key)
+            CHANGE_KEY: (f"change key", self._change_key),
             BACKUP: (f"create backup into json", self.backup)
         }
         self.all_passwords = self._decrypt_all()
