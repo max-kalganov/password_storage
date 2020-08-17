@@ -6,6 +6,8 @@ import pyperclip
 
 from typing import Optional, Dict, Tuple, Callable, List, Union
 
+from tabulate import tabulate
+
 from storage_utils.AES import AES
 from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIST_ALL_SERVICES, ADD_RECORD, \
     DEL_RECORD, EDIT_RECORD, SHOW_HELP, QUIT, CHANGE_KEY, PATH_TO_PASSWORDS, LOGIN, PASSWORD, \
@@ -121,7 +123,7 @@ class PassStorage:
             else:
                 print('found many accounts')
         else:
-            print(output)
+            print(tabulate(output, headers='keys'))
 
     def run(self):
         self._init_after_install()
