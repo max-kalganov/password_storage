@@ -4,7 +4,7 @@ import random
 import string
 import pyperclip
 
-from typing import Optional, Dict, Tuple, Callable, List
+from typing import Optional, Dict, Tuple, Callable, List, Union
 
 from storage_utils.AES import AES
 from storage_utils.ct import PASS_STORAGE_ENV_KEY_PATH, SHOW_RECORDS_OPTION, LIST_ALL_SERVICES, ADD_RECORD, \
@@ -16,8 +16,6 @@ from storage_utils.utils import is_file, is_key_path_correct, format_str_num, ge
 
 class PassStorage:
     __slots__ = ["key_path", "all_passwords", "aes", "commands", "new_key"]
-
-    # TODO: unite show, delete, edit and so on
 
     def __init__(self):
         self.aes: Optional[AES] = None
@@ -40,8 +38,9 @@ class PassStorage:
         print("finish list_all")
 
     def add(self):
-        cur_service = input("input service >> ")
+        cur_service = input("input service name >> ")
         self.all_passwords.setdefault(cur_service, [])
+
         self._add_account(cur_service)
         print("finish adding")
 
@@ -49,6 +48,7 @@ class PassStorage:
         self._process_services(self._delete_service)
         print("finish deleting")
 
+    # TODO: ? unify edit and add
     def edit(self):
         self._process_services(self._edit_accounts)
         print("finish editing")
@@ -222,6 +222,16 @@ class PassStorage:
         }
         self.all_passwords = self._decrypt_all()
 
+    @staticmethod
+    def _input_new_field(fields, msg: str) -> Union[str, STOP]:
+        field = input(msg + f" >> ")
+        while field in fields:
+            field = input(f"{msg} (or '{STOP}' to stop) >> ")
+            if field not in fields or field == STOP:
+                break
+            print(f"{field} is already in {fields}")
+        return field
+
     def _input_service(self):
         while True:
             service = input(f"input service (or '{STOP}' to stop)>> ")
@@ -250,7 +260,7 @@ class PassStorage:
         return None, False
 
     def _account_info(self, service: str, acc_num: int) -> str:
-        return f"username = {self.all_passwords[service][acc_num][USERNAME_KEY]}   |   " \
+        return f"login = {self.all_passwords[service][acc_num][USERNAME_KEY]}   |   " \
             f"password = {self.all_passwords[service][acc_num][PASSWORD_KEY]}"
 
     def _print_account_full(self, service: str, acc_num: int):
@@ -261,20 +271,26 @@ class PassStorage:
         self._process_accounts(service, action_descr="to show full info", command=self._print_account_full)
 
     def _add_account(self, service: str):
-        username = input("input username >> ")
-        password = input("input password >> ")
-        new_account = {
-            USERNAME_KEY: username,
-            PASSWORD_KEY: password
-        }
-        add_field = input("add a field[y/n] >> ")
-        while add_field == "y":
-            field = input("input a field name >> ")
-            f_value = input("input a field value >> ")
-            new_account[field] = f_value
+        all_logins = {acc[USERNAME_KEY]: i for i, acc in enumerate(self.all_passwords[service])}
+        add_field = "y"
+        login = input("input login >> ")
+        if login not in all_logins:
+            password = input("input password >> ")
+            cur_account = {
+                USERNAME_KEY: login,
+                PASSWORD_KEY: password
+            }
+            self.all_passwords[service].append(cur_account)
             add_field = input("add a field[y/n] >> ")
+        else:
+            cur_account = self.all_passwords[service][all_logins[login]]
+            self._print_account_full(service, all_logins[login])
 
-        self.all_passwords[service].append(new_account)
+        while add_field == "y":
+            field = self._input_new_field(cur_account.keys(), "input a field name")
+            f_value = input("input a field value >> ")
+            cur_account[field] = f_value
+            add_field = input("add a field[y/n] >> ")
 
     def _delete_service(self, service):
         ans = input("delete the whole service? [y/n]")
@@ -286,7 +302,7 @@ class PassStorage:
     def _delete_fields(self, service: str, acc_num: int):
         def delete_field(cur_service, cur_acc_num, field_name):
             if field_name in {USERNAME_KEY, PASSWORD_KEY}:
-                print("deleting username or password is prohibited")
+                print("deleting login or password is prohibited")
             else:
                 del self.all_passwords[service][acc_num][field_name]
 
