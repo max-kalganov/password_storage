@@ -33,15 +33,19 @@ class PassStorage:
         print("finish show_records")
 
     def list_all(self):
-        for num, service in enumerate(sorted(self.all_passwords.keys())):
-            print(f"{num}. {service}")
-        print("finish list_all")
+        print("\nall services:")
+        for service in sorted(self.all_passwords.keys()):
+            print(f"--- {service}")
+        print()
 
     def add(self):
-        cur_service = input("input service name >> ").strip()
-        self.all_passwords.setdefault(cur_service, [])
+        def get_input_service():
+            cur_service = input(f"input service name (or '{STOP}' to stop) >> ").strip()
+            if cur_service != STOP:
+                self.all_passwords.setdefault(cur_service, [])
+            return cur_service
 
-        self._add_account(cur_service)
+        self._process_services(command=self._add_account, get_input_service=get_input_service)
         print("finish adding")
 
     def delete(self):
@@ -226,16 +230,14 @@ class PassStorage:
     @staticmethod
     def _input_new_field(fields, msg: str) -> Union[str, STOP]:
         field = input(msg + f" >> ").strip()
-        while field in fields:
-            field = input(f"{msg} (or '{STOP}' to stop) >> ").strip()
-            if field not in fields or field == STOP:
-                break
+        while field in fields and field != STOP:
             print(f"{field} is already in {fields}")
+            field = input(f"{msg} (or '{STOP}' to stop) >> ").strip()
         return field
 
     def _input_service(self):
         while True:
-            service = input(f"input service (or '{STOP}' to stop)>> ").strip()
+            service = input(f"input service (or '{STOP}' to stop) >> ").strip()
             if service in self.all_passwords.keys() or service == STOP:
                 break
             print("wrong service name")
@@ -246,13 +248,14 @@ class PassStorage:
         self.new_key = self._gen_aes_key(key_path=self.key_path, save_in_file=False)
 
     def _print_all_accounts(self, service):
+        print(f"\n all accounts for service = {service}:")
         for num in range(len(self.all_passwords[service])):
             print(f"{num}. {self._account_info(service, num)}")
 
     def _check_acc_num(self, acc_num: str, service: str) -> Tuple[Optional[int], bool]:
         try:
             acc_num = int(acc_num, 10)
-            if len(self.all_passwords[service]) < acc_num and acc_num >= 0:
+            if 0 <= acc_num < len(self.all_passwords[service]):
                 return acc_num, True
             else:
                 print(f"num not in ranges [0 <= num < {len(self.all_passwords[service])}]")
@@ -292,6 +295,8 @@ class PassStorage:
 
         while add_field == "y":
             field = self._input_new_field(cur_account.keys(), "input a field name")
+            if field == STOP:
+                break
             f_value = input("input a field value >> ").strip()
             cur_account[field] = f_value
             add_field = input("add a field[y/n] >> ").strip()
@@ -337,8 +342,9 @@ class PassStorage:
         def edit_field(cur_service, cur_acc_num, field_name):
             if field_name == LOGIN:
                 f_value = self._input_new_field(all_logins.keys(), "input new field value")
-                all_logins[f_value] = all_logins[field_name]
-                del all_logins[field_name]
+                acc_num = all_logins[self.all_passwords[cur_service][cur_acc_num][field_name]]
+                all_logins[f_value] = acc_num
+                del all_logins[self.all_passwords[cur_service][cur_acc_num][field_name]]
             else:
                 f_value = input("input new field value >> ").strip()
 
@@ -370,13 +376,14 @@ class PassStorage:
             encr_text += format_str_num(max_len, str_num)
         return encr_text
 
-    def _process_services(self, command: Callable):
-        service = self._input_service()
+    def _process_services(self, command: Callable, get_input_service: Optional[Callable] = None):
+        get_input_service = get_input_service if get_input_service is not None else self._input_service
+        service = get_input_service()
         while service != STOP:
             command(service)
 
             self.list_all()
-            service = self._input_service()
+            service = get_input_service()
 
     def _process_accounts(self, service: str, action_descr: str, command: Callable):
         full_action_descr = ' ' + action_descr if action_descr else ''
