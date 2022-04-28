@@ -180,7 +180,7 @@ class PassStorage:
     def _get_key(self) -> str:
         with open(self.key_path, "r") as file:
             text_key = file.read()
-        return text_key
+        return text_key.strip()
 
     @staticmethod
     def _get_list_of_nums(nums_in_row: str) -> List[int]:
